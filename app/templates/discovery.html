@@ -1,0 +1,15 @@
+{% from 'macros.html' import csrf, match_icon with context %}
+<section id="discovery" class="discovery" aria-label="{{ t('selected_titles') }}">
+  <div class="selection-heading"><div><p class="eyebrow">CINOVELLE MATCH</p><h2>{{ t('selection') }}</h2></div><span id="selection-count">{{ selected_keys|length }} / 5</span></div>
+  <div id="selection-tray" class="selection-tray">
+    {% for item in selected_items %}<div class="selection-item" data-key="{{ item.key }}">{% if item.poster %}<img src="{{ item.poster }}" alt="" width="30" height="45">{% endif %}<span>{{ item.title }}</span><form data-selection method="post" action="{{ url_for('web.select') }}">{{ csrf(csrf_token) }}<input type="hidden" name="key" value="{{ item.key }}"><input type="hidden" name="action" value="remove"><button aria-label="{{ t('remove') }} {{ item.title }}">×</button></form></div>{% else %}<p class="selection-empty">{{ t('selection_hint') }}</p>{% endfor %}
+  </div>
+  <p id="selection-limit" class="selection-limit" role="status" {{ 'hidden' if selected_keys|length < 5 }}>{{ t('limit_reached') }}</p>
+  <form id="recommend-form" class="recommend-form" method="post" action="{{ url_for('web.recommendations') }}" data-loading>
+    {{ csrf(csrf_token) }}<label>{{ t('filters') }}<select name="type">{% for value, label in [('both','both'),('movie','movies'),('tv','series')] %}<option value="{{ value }}" {{ 'selected' if kind|default('both') == value }}>{{ t(label) }}</option>{% endfor %}</select></label>
+    <label>{{ t('genre') }}<select name="genre"><option value="">{{ t('all_genres') }}</option>{% for genre in genres|default([]) %}<option value="{{ genre.id }}" {{ 'selected' if genre_id|default(none) == genre.id }}>{{ genre.name }}</option>{% endfor %}</select></label>
+    {% if profile %}<label class="checkbox"><input type="checkbox" name="preferences" {{ 'checked' if use_preferences|default(false) }}>{{ t('use_preferences') }}</label>{% endif %}
+    <button id="recommend-button" class="button primary" {{ 'disabled' if not selected_keys }}>{{ match_icon() }} {{ t('discover') }} <span class="match-count">{{ selected_keys|length }}/5</span></button>
+  </form>
+</section>
+<button id="recommend-shortcut" class="button primary recommend-shortcut" type="submit" form="recommend-form" hidden>{{ match_icon() }} {{ t('discover') }} <span class="match-count">{{ selected_keys|length }}/5</span></button>

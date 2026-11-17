@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<section class="error-page"><p class="eyebrow">AN INTERMISSION</p><h1>{{ t('error') }}</h1><p class="lede" role="alert">{{ t(message) }}</p><a class="button primary" href="{{ url_for('web.home') }}">{{ t('back') }} →</a></section>{% endblock %}

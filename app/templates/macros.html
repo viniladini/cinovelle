@@ -1,0 +1,26 @@
+{% macro csrf(token) %}<input type="hidden" name="csrf_token" value="{{ token }}">{% endmacro %}
+{% macro match_icon() %}<svg class="match-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect class="frame-a" x="3" y="5" width="17" height="21" rx="3" stroke="currentColor" stroke-width="2"/><rect class="frame-b" x="12" y="8" width="17" height="21" rx="3" stroke="currentColor" stroke-width="2"/><path d="M13 10h6v14h-6z" fill="currentColor" opacity=".4"/></svg>{% endmacro %}
+{% macro watch_action(item, token, t, keys, return_to='') %}<form data-watchlist method="post" action="{{ url_for('web.toggle_watchlist') }}">{{ csrf(token) }}<input type="hidden" name="key" value="{{ item.key }}"><input type="hidden" name="return_to" value="{{ return_to }}"><input type="hidden" name="action" value="{{ 'remove' if item.key in keys else 'add' }}"><button class="small-button watch-button" aria-pressed="{{ 'true' if item.key in keys else 'false' }}">{{ t('watchlisted') if item.key in keys else t('watch_add') }}</button></form>{% endmacro %}
+{% macro card(item, t, token, favorite_keys, result=none, selectable=true, selected_keys=[], query='', return_to='') %}
+<article class="media-card" data-key="{{ item.key }}" data-type="{{ item.media_type }}" data-genres="{{ item.genres|map(attribute='id')|join(',') }}">
+  <a class="poster" href="{{ url_for('web.details', key=item.key) }}">
+    {% if item.poster %}<img src="{{ item.poster }}" {% if item.source == 'tmdb' and '/w500/' in item.poster %}srcset="{{ item.poster|replace('/w500/','/w342/') }} 342w, {{ item.poster }} 500w, {{ item.poster|replace('/w500/','/w780/') }} 780w" sizes="(max-width:600px) 43vw, (max-width:1200px) 22vw, 16vw"{% endif %} alt="{{ item.title }}" loading="lazy" decoding="async" width="400" height="600">{% else %}<span class="poster-fallback">{{ item.title }}</span>{% endif %}
+    <span class="poster-open">{{ t('details') }} <span>↗</span></span>
+    {% if result %}<span class="match-badge">{{ match_icon() }} {{ result.score }}% <small>{{ t('match') }}</small></span>{% endif %}
+  </a>
+  <div class="card-meta"><span>{{ item.year or '—' }} <span class="dot">·</span> {{ t(item.media_type) }}</span><span>{{ 'TMDB ' ~ ('%.1f'|format(item.rating)) if item.rating is not none else '—' }}</span></div>
+  {% set imdb_rating = imdb_cached(item.imdb_id) %}{% if imdb_rating is not none %}<p class="cached-rating">IMDb {{ imdb_rating }}/10 <small>via OMDb</small></p>{% endif %}
+  <h3><a href="{{ url_for('web.details', key=item.key) }}">{{ item.title }}</a></h3>
+  {% if item.genres %}<p class="genre-line">{{ item.genres|map(attribute='name')|join(' · ') }}</p>{% endif %}
+  {% if result %}<details class="reason"><summary>{{ t('why_match') }}</summary>{% if result.factors.get('algorithm_version') == 2 %}{% for reason in result.explanation_keys %}<p>{{ t(reason).format(count=(result.factors.get('reference_count',0) if reason == 'reason_combined' else result.factors.get('related_count',0))|int) }}</p>{% endfor %}{% for name,value in result.factors.items() if name.startswith('theme_') and value %}<span class="theme-label">{{ t(name) }}</span>{% endfor %}{% else %}<p>{{ t('shared') ~ ': ' ~ result.shared_genres|join(', ') if result.shared_genres else t('no_shared') }}</p>{% endif %}<p>{{ t('heuristic') }}</p></details>{% endif %}
+  {% if result and result.factors.get('reliability', 1) < 1 %}<p class="evidence-note">{{ t('limited_evidence') }}</p>{% endif %}
+  <div class="card-actions">
+  {% if selectable %}
+    <form data-selection method="post" action="{{ url_for('web.select') }}">{{ csrf(token) }}<input type="hidden" name="key" value="{{ item.key }}"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="action" value="{{ 'remove' if item.key in selected_keys else 'add' }}"><button class="small-button {{ 'is-selected' if item.key in selected_keys }}" aria-pressed="{{ 'true' if item.key in selected_keys else 'false' }}">{{ '✓ ' ~ t('selected') if item.key in selected_keys else '+ ' ~ t('select') }}</button></form>
+  {% else %}<a class="detail-link" href="{{ url_for('web.details', key=item.key) }}">{{ t('details') }} ↗</a>{% endif %}
+    <form data-favorite method="post" action="{{ url_for('web.toggle_favorite') }}">{{ csrf(token) }}<input type="hidden" name="key" value="{{ item.key }}"><input type="hidden" name="return_to" value="{{ return_to }}"><input type="hidden" name="action" value="{{ 'remove' if item.key in favorite_keys else 'add' }}"><button class="heart {{ 'active' if item.key in favorite_keys }}" aria-pressed="{{ 'true' if item.key in favorite_keys else 'false' }}" aria-label="{{ t('favorite_remove') if item.key in favorite_keys else t('favorite_add') }}">{{ '♥' if item.key in favorite_keys else '♡' }}</button></form>
+    {{ watch_action(item,token,t,watchlist_keys|default([]),return_to) }}
+    {% if return_to == 'watchlist' %}<form method="post" action="{{ url_for('web.similar',key=item.key) }}" data-loading>{{ csrf(token) }}<button class="small-button">{{ match_icon() }} {{ t('find_similar') }}</button></form>{% endif %}
+  </div>
+</article>
+{% endmacro %}

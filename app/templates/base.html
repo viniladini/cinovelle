@@ -1,0 +1,54 @@
+{% from 'macros.html' import match_icon with context %}
+<!doctype html>
+<html lang="{{ language }}">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101114">
+  <meta name="description" content="Cinovelle — Your next favorite story.">
+  <title>{% block title %}cinovelle. — Your next favorite story.{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='interaction-utils.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">{{ t('back') }}</a>
+<header class="navbar shell">
+  <a class="wordmark" href="{{ url_for('web.home') }}">cinovelle<span>.</span></a>
+  <nav aria-label="Menu">
+    <a href="{{ url_for('web.home') }}" {{ 'aria-current=page' if request.endpoint == 'web.home' }}>{{ t('home') }}</a>
+    <a href="{{ url_for('web.explore') }}" {{ 'aria-current=page' if request.endpoint == 'web.explore' }}>{{ t('explore') }}</a>
+    <a href="{{ url_for('web.taste') }}" {{ 'aria-current=page' if request.endpoint == 'web.taste' }}>{{ t('taste') }}</a>
+    <a href="{{ url_for('web.favorites') }}" {{ 'aria-current=page' if request.endpoint == 'web.favorites' }}>{{ t('favorites') }}</a>
+    <a href="{{ url_for('web.watchlist') }}" {{ 'aria-current=page' if request.endpoint == 'web.watchlist' }}>{{ t('watchlist') }}</a>
+  </nav>
+  <div class="search-interaction">
+    <form id="title-search" class="search-box" method="get" action="{{ url_for('web.explore') }}" autocomplete="off"><svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="6" stroke="currentColor" stroke-width="1.7"/><path d="m15 15 5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><input id="title-query" type="search" name="q" value="{{ query|default('') }}" placeholder="{{ t('search_placeholder') }}" aria-label="{{ t('search_placeholder') }}" aria-describedby="search-hint" aria-controls="suggestions" aria-expanded="false" aria-haspopup="dialog" role="combobox" maxlength="120"><button aria-label="{{ t('search') }}">&rarr;</button></form>
+    <div id="suggestions" class="suggestions" role="dialog" aria-label="{{ t('suggestions') }}" aria-busy="false" hidden>
+      <p id="search-hint" class="search-hint">{{ t('search_hint') }}</p>
+      <div id="search-skeleton" class="search-skeleton" aria-hidden="true" hidden>{% for _ in range(3) %}<div class="suggestion-skeleton"><span class="skeleton skeleton-thumb"></span><span class="skeleton skeleton-line"></span></div>{% endfor %}</div>
+      <p id="suggestion-status" role="status" aria-live="polite"></p><ul id="suggestion-list" aria-label="{{ t('suggestions') }}"></ul>
+    </div>
+  </div>
+  <div class="nav-tools">
+    <form method="post" action="{{ url_for('web.language', language='en-US' if language == 'pt-BR' else 'pt-BR') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button language" aria-label="{{ 'Switch to English' if language == 'pt-BR' else 'Mudar para português' }}">{{ 'PT' if language == 'pt-BR' else 'EN' }} <span>/ {{ 'EN' if language == 'pt-BR' else 'PT' }}</span></button>
+    </form>
+    <a class="profile-link" href="{{ url_for('web.profiles') }}">{{ profile.name if profile else t('profiles') }}</a>
+    {% if profile %}<form method="post" action="{{ url_for('web.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button">{{ t('logout') }}</button></form>{% endif %}
+  </div>
+</header>
+<main id="main" class="shell">
+  {% for message in get_flashed_messages() %}<div class="notice" role="status">{{ t(message) }}</div>{% endfor %}
+  {% if demo %}<div class="edition"><span></span>{{ t('demo') }}</div>{% endif %}
+  {% block content %}{% endblock %}
+  {% if request.endpoint not in ('web.home', 'web.explore', 'web.recommendations', 'web.similar') %}{% include 'discovery.html' %}{% endif %}
+</main>
+<footer class="shell footer">
+  <div><a class="wordmark" href="{{ url_for('web.home') }}">cinovelle<span>.</span></a><p>Your next favorite story.</p></div>
+  <div class="footer-copy"><p>{{ t('about') }}</p><small>IFSP · ADS · POO &amp; Banco de Dados · 2026</small></div>
+  <section class="attribution" aria-label="{{ t('credits') }}"><small>{{ t('credits') }}</small><a href="https://www.themoviedb.org/" target="_blank" rel="noopener"><img src="{{ url_for('static', filename='tmdb.svg') }}" alt="The Movie Database" width="95" height="13"></a><small>This product uses the TMDB API but is not endorsed or certified by TMDB.</small></section>
+</footer>
+<div id="live-feedback" class="live-feedback" role="status" aria-live="polite" data-empty="{{ t('empty') }}" hidden></div>
+<div id="loading" class="loading" role="status" hidden>{{ match_icon() }}<span>{{ t('loading') }}</span><div class="result-skeleton" aria-hidden="true">{% for _ in range(3) %}<span class="skeleton"></span>{% endfor %}</div></div>
+<script id="interaction-config" type="application/json">{{ {'csrf': csrf_token, 'searchUrl': url_for('web.search_suggestions'), 'selectionUrl': url_for('web.select'), 'favoriteUrl': url_for('web.toggle_favorite'), 'selected': selected_keys, 'favorites': favorite_keys|list, 'watchlist': watchlist_keys|list, 'watchlistUrl': url_for('web.toggle_watchlist'), 'messages': {'remove': t('remove'), 'select': t('select'), 'selected': t('selected'), 'favorite_add': t('favorite_add'), 'favorite_remove': t('favorite_remove'), 'favorite_saved': t('favorite_saved'), 'favorite_deleted': t('favorite_deleted'), 'selection_added': t('selection_added'), 'selection_removed': t('selection_removed'), 'selection_hint': t('selection_hint'), 'empty_search': t('empty_search'), 'searching': t('searching'), 'network_error': t('network_error'), 'error': t('error'), 'loading': t('loading'), 'limit_reached': t('limit_reached'), 'watch_add': t('watch_add'), 'watchlisted': t('watchlisted'), 'watch_saved': t('watch_saved'), 'watch_removed': t('watch_removed')}}|tojson }}</script>
+</body></html>

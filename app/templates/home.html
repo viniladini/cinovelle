@@ -1,0 +1,27 @@
+{% extends 'base.html' %}{% from 'macros.html' import card, csrf, match_icon with context %}
+{% macro rail(id, heading, collection) %}
+{% if collection %}<section class="catalog-section" aria-labelledby="{{ id }}-heading"><div class="section-top"><h2 id="{{ id }}-heading">{{ heading }}</h2><div class="rail-controls"><button type="button" data-rail="{{ id }}" data-direction="-1" aria-label="{{ t('previous') }} &middot; {{ heading }}">&larr;</button><button type="button" data-rail="{{ id }}" data-direction="1" aria-label="{{ t('next') }} &middot; {{ heading }}">&rarr;</button></div></div><div id="{{ id }}" class="media-rail" tabindex="0" role="region" aria-label="{{ heading }}">{% for item in collection %}{{ card(item,t,csrf_token,favorite_keys,selected_keys=selected_keys) }}{% endfor %}</div></section>{% endif %}
+{% endmacro %}
+{% block content %}
+{% if not explore and not query and featured %}
+<section class="cinema-hero hero-carousel" aria-roledescription="{{ t('carousel') }}" aria-label="{{ t('spotlight') }}" data-hero data-play="{{ t('hero_play') }}" data-pause="{{ t('hero_pause') }}">
+{% for item in highlights %}<article class="hero-slide {{ 'is-active' if loop.first }} {{ 'demo-hero' if not item.backdrop }}" aria-roledescription="{{ t('slide') }}" aria-label="{{ loop.index }} / {{ highlights|length }}" aria-hidden="{{ 'false' if loop.first else 'true' }}" {{ 'inert' if not loop.first }}>
+  {% if item.backdrop %}<img class="hero-backdrop" {{ 'src' if loop.first else 'data-src' }}="{{ item.backdrop }}" alt="" {{ 'fetchpriority=high' if loop.first }} width="1280" height="720" decoding="async">{% endif %}
+  {% if item.poster %}<img class="{{ 'hero-cover' if item.backdrop else 'hero-demo-poster' }}" {{ 'src' if loop.first else 'data-src' }}="{{ item.poster }}" alt="" width="400" height="600" decoding="async">{% endif %}
+  <div class="hero-copy"><p class="eyebrow">{{ match_icon() }} {{ t('spotlight') }}</p><p class="hero-intro">{{ t('hero') }}</p>{% if loop.first %}<h1>{{ item.title }}</h1>{% else %}<h2 class="hero-title">{{ item.title }}</h2>{% endif %}<p class="hero-meta">{{ item.year }} &middot; {{ t(item.media_type) }}{% if item.rating is not none %} &middot; TMDB {{ '%.1f'|format(item.rating) }}/10{% endif %}</p><p class="hero-synopsis">{{ item.overview|truncate(210) }}</p><div class="hero-buttons"><a class="button primary" href="{{ url_for('web.details',key=item.key) }}">{{ t('details') }} &nearr;</a><form method="post" action="{{ url_for('web.similar',key=item.key) }}" data-loading>{{ csrf(csrf_token) }}<button class="button">{{ match_icon() }} {{ t('find_similar') }}</button></form></div></div>
+</article>{% endfor %}
+{% if highlights|length > 1 %}<div class="hero-controls"><button type="button" data-hero-prev aria-label="{{ t('previous') }}">&larr;</button><div class="hero-dots">{% for item in highlights %}<button type="button" data-hero-index="{{ loop.index0 }}" aria-label="{{ t('go_slide').format(index=loop.index) }}" aria-current="{{ 'true' if loop.first else 'false' }}"><span></span></button>{% endfor %}</div><button type="button" data-hero-next aria-label="{{ t('next') }}">&rarr;</button><button type="button" data-hero-pause aria-label="{{ t('hero_pause') }}" aria-pressed="false">&#8545;</button></div>{% endif %}
+</section>
+{% else %}<section class="page-heading"><p class="eyebrow">CINOVELLE COLLECTION</p><h1>{{ t('search') if query else t('explore') }}</h1><p class="lede">{{ query if query else t('catalog_sub') }}</p></section>{% endif %}
+{% include 'discovery.html' %}
+{% if explore or query %}
+<section class="catalog-section"><div class="section-top"><h2>{{ t('catalog') }}</h2><span class="catalog-count">{{ items|length }}</span></div><form class="catalog-filters" method="get" action="{{ url_for('web.explore') }}"><input type="hidden" name="q" value="{{ query }}"><label>{{ t('filters') }}<select name="type">{% for value,label in [('both','both'),('movie','movies'),('tv','series')] %}<option value="{{ value }}" {{ 'selected' if kind == value }}>{{ t(label) }}</option>{% endfor %}</select></label><label>{{ t('genre') }}<select name="genre"><option value="">{{ t('all_genres') }}</option>{% for genre in genres %}<option value="{{ genre.id }}" {{ 'selected' if genre.id == genre_id|default(none) }}>{{ genre.name }}</option>{% endfor %}</select></label><button class="button">{{ t('apply') }}</button></form><div class="media-grid">{% for item in items %}{{ card(item,t,csrf_token,favorite_keys,selected_keys=selected_keys,query=query) }}{% else %}<p class="empty">{{ t('empty_search') }}</p>{% endfor %}</div></section>
+{% else %}
+{{ rail('discover-rail',t('next_favorite'),items[:10]) }}
+{{ rail('movies-rail',t('demo_movies') if demo else t('popular_movies'),items|selectattr('media_type','equalto','movie')|list) }}
+{{ rail('series-rail',t('featured_series'),items|selectattr('media_type','equalto','tv')|list) }}
+{{ rail('personal-rail',t('for_you'),personal) }}
+<a class="explore-more" href="{{ url_for('web.explore') }}"><span>{{ t('continue_exploring') }}</span><span>&rarr;</span></a>
+{% endif %}
+{% if demo %}<p class="demo-note">{{ t('demo_note') }}</p>{% endif %}
+{% endblock %}

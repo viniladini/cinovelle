@@ -1,0 +1,6 @@
+{% extends 'base.html' %}{% from 'macros.html' import csrf with context %}
+{% block content %}
+<section class="page-heading"><p class="eyebrow">A PERSONAL COLLECTION</p><h1>{{ t('local_profiles') }}</h1><p class="lede">{{ t('profile_note') }}</p></section>
+<div class="profiles-grid">{% for item in profiles %}<article class="profile-card"><span class="profile-initial">{{ item.name[0]|upper }}</span><h2>{{ item.name }}</h2><div class="inline-actions"><form method="post" action="{{ url_for('web.profile_action',profile_id=item.id,action='enter') }}">{{ csrf(csrf_token) }}<button class="button primary">{{ t('enter') }} →</button></form><form method="post" action="{{ url_for('web.profile_action',profile_id=item.id,action='delete') }}" data-confirm="{{ t('confirm_delete') }}">{{ csrf(csrf_token) }}<button class="text-button danger">{{ t('delete') }}</button></form></div></article>{% endfor %}
+<article class="profile-card create-profile"><h2>{{ t('create_profile') }}</h2><form method="post" action="{{ url_for('web.create_profile') }}">{{ csrf(csrf_token) }}<label>{{ t('name') }}<input name="name" required minlength="1" maxlength="40" autocomplete="nickname"></label><button class="button primary">{{ t('create_profile') }} +</button></form></article></div>
+{% endblock %}
